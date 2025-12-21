@@ -1,7 +1,7 @@
 [project]
 name = "uci_online_retail"
 version = "0.1.0"
-description = "Default template for PDM package"
+description = "UCI online retail case for Vertica"
 authors = [
     {name = "sao90", email = "s.ostervig@hotmail.com"},
 ]
