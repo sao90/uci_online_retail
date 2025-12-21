@@ -5,7 +5,7 @@ description = "UCI online retail case for Vertica"
 authors = [
     {name = "sao90", email = "s.ostervig@hotmail.com"},
 ]
-dependencies = ["ucimlrepo>=0.0.7"]
+dependencies = ["openpyxl>=3.1.5", "python-dotenv>=1.2.1"]
 requires-python = "==3.12.*"
 readme = "README.md"
 license = {text = "MIT"}
