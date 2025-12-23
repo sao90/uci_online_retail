@@ -16,9 +16,9 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    logging.info("Starting SQLite database initialization...")
     setup_logging()
     load_dotenv()
+    logging.info("Starting SQLite database initialization...")
 
     excel_path = os.getenv("INPUT_DATA_FILE")
     db_path = os.getenv("DB_FILE")
