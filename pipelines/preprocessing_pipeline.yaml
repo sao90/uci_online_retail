@@ -1,0 +1,115 @@
+$schema: https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json
+type: pipeline
+display_name: retail_preprocessing_pipeline
+description: End-to-end preprocessing pipeline for UCI Online Retail dataset
+
+# Pipeline settings
+settings:
+  default_compute: azureml:cpu-cluster
+  default_datastore: azureml:workspaceblobstore
+  continue_on_step_failure: false
+
+# Pipeline inputs (can be overridden at runtime)
+inputs:
+  db_path:
+    type: uri_file
+    path: azureml://datastores/workspaceblobstore/paths/retail/retail.db
+  countries:
+    type: string
+    default: "United Kingdom"
+
+# Pipeline outputs
+outputs:
+  train_data:
+    type: uri_folder
+    mode: rw_mount
+  val_data:
+    type: uri_folder
+    mode: rw_mount
+  test_data:
+    type: uri_folder
+    mode: rw_mount
+
+# Pipeline steps
+jobs:
+  # Step 1: Ingest data from SQLite database
+  ingest_data:
+    type: command
+    component: ../components/preprocessing/ingest_data.py
+    inputs:
+      db_path: ${{parent.inputs.db_path}}
+    outputs:
+      output_data:
+        type: uri_file
+        mode: rw_mount
+    environment: azureml:retail-env@latest
+    compute: azureml:cpu-cluster
+
+  # Step 2: Clean data (remove cancelled transactions, negatives, etc.)
+  clean_data:
+    type: command
+    component: ../components/preprocessing/clean_data.py
+    inputs:
+      input_data: ${{parent.jobs.ingest_data.outputs.output_data}}
+      countries: ${{parent.inputs.countries}}
+    outputs:
+      output_data:
+        type: uri_file
+        mode: rw_mount
+    environment: azureml:retail-env@latest
+    compute: azureml:cpu-cluster
+
+  # Step 3: Split data chronologically (train/val/test)
+  split_data:
+    type: command
+    component: ../components/preprocessing/split_data.py
+    inputs:
+      input_data: ${{parent.jobs.clean_data.outputs.output_data}}
+      train_ratio: 0.7
+      val_ratio: 0.15
+      test_ratio: 0.15
+    outputs:
+      output_train:
+        type: uri_file
+        mode: rw_mount
+      output_val:
+        type: uri_file
+        mode: rw_mount
+      output_test:
+        type: uri_file
+        mode: rw_mount
+    environment: azureml:retail-env@latest
+    compute: azureml:cpu-cluster
+
+  # Step 4a: Feature engineering - train set
+  feature_engineering_train:
+    type: command
+    component: ../components/preprocessing/feature_engineering.py
+    inputs:
+      input_data: ${{parent.jobs.split_data.outputs.output_train}}
+    outputs:
+      output_data: ${{parent.outputs.train_data}}
+    environment: azureml:retail-env@latest
+    compute: azureml:cpu-cluster
+
+  # Step 4b: Feature engineering - validation set
+  feature_engineering_val:
+    type: command
+    component: ../components/preprocessing/feature_engineering.py
+    inputs:
+      input_data: ${{parent.jobs.split_data.outputs.output_val}}
+    outputs:
+      output_data: ${{parent.outputs.val_data}}
+    environment: azureml:retail-env@latest
+    compute: azureml:cpu-cluster
+
+  # Step 4c: Feature engineering - test set
+  feature_engineering_test:
+    type: command
+    component: ../components/preprocessing/feature_engineering.py
+    inputs:
+      input_data: ${{parent.jobs.split_data.outputs.output_test}}
+    outputs:
+      output_data: ${{parent.outputs.test_data}}
+    environment: azureml:retail-env@latest
+    compute: azureml:cpu-cluster
