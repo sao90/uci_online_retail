@@ -1,6 +1,8 @@
 import sqlite3
 import logging
 
+import pandas as pd
+
 logger = logging.getLogger(__name__)
 
 
@@ -47,11 +49,9 @@ class DataCleaner:
     def copy_table(self, source_table: str, target_table: str) -> str:
         """
         Copy data from source_table to target_table.
-
         Args:
             source_table: Name of the source table.
             target_table: Name of the target table.
-
         Returns:
             Name of the newly created table.
         """
@@ -68,7 +68,9 @@ class DataCleaner:
         self,
         table_name: str,
     ) -> None:
-        """Remove transactions starting with 'C' in InvoiceNo."""
+        """
+        Remove transactions starting with 'C' in InvoiceNo.
+        """
         self.cursor.execute(
             f"""
             DELETE FROM {table_name}
@@ -79,3 +81,15 @@ class DataCleaner:
         logger.info(
             f"Removed {deleted_count} cancelled transactions from '{table_name}'"
         )
+
+    def query_to_df(self, query: str) -> pd.DataFrame:
+        """
+        Execute SQL query and return results as DataFrame.
+        Args:
+            query: SQL query to execute.
+        Returns:
+            DataFrame containing the table data.
+        """
+        df = pd.read_sql_query(query, self.db_connection)
+        logger.info(f"Retrieved {len(df):,} rows from query")
+        return df
