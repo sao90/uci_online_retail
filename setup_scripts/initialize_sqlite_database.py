@@ -22,6 +22,7 @@ def main():
 
     excel_path = os.getenv("INPUT_DATA_FILE")
     db_path = os.getenv("DB_FILE")
+    table_name = os.getenv("DB_TABLE_NAME")
 
     logger.info(f"Reading {excel_path}...")
     df = pd.read_excel(excel_path)
@@ -29,7 +30,7 @@ def main():
 
     logger.info(f"Creating database at {db_path}...")
     conn = sqlite3.connect(database=db_path)
-    df.to_sql(name="transactions", con=conn, if_exists="replace", index=False)
+    df.to_sql(name=table_name, con=conn, if_exists="replace", index=False)
     conn.close()
 
     logger.info("Done!")
