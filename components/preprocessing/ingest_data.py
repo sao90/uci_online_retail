@@ -39,7 +39,9 @@ def main():
     args = parse_args()
     logger.info("Starting data ingestion component...")
     try:
-        logger.info(f"Loading data from table {args.table_name} in database {args.db_path}...")
+        logger.info(
+            f"Loading data from table {args.table_name} in database {args.db_path}..."
+        )
         data_loader = DataLoader(db_path=args.db_path)
         df = data_loader.load_table_to_df(
             table_name=args.table_name,

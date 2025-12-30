@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Data cleaning component")
-    
+
     parser.add_argument(
         "--input_data",
         type=str,
