@@ -17,14 +17,16 @@ class DataCleaner:
     - Create Revenue column (Quantity * UnitPrice)
     - Filter to specified countries
 
-    Example usage:
-    ```python
-        cleaner = DataCleaner()
-        cleaned_df = cleaner.run(
-            df=raw_df,
-            countries=["United Kingdom", "Germany"]
-        )
-    ```
+    TODO before production grade:
+    - cancelled transactions can have a counterpart in positive sales, not just remove cancellations.
+        potentially complex matching logic
+        - which columns to match on?
+        - partial cancellations?
+        - reasons for cancellations? are all cancellations equal?
+    - validation of input data schema
+    - validation of output data schema
+
+
     """
 
     def __init__(self):
