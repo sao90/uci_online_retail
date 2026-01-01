@@ -215,8 +215,8 @@ __marimo__/
 data/retail.db
 
 # Pipeline output files
-data/pipeline_runs/raw_data.parquet
-data/pipeline_runs/cleaned_data.parquet
-data/pipeline_runs/features_raw.parquet
-data/pipeline_runs/test_targets.parquet
-data/pipeline_runs/train_targets.parquet
+data/pipeline_runs/*.parquet
+
+
+# exploratory notebooks
+notebooks/investigate_data.ipynb

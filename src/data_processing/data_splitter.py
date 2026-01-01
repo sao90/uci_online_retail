@@ -107,7 +107,7 @@ class DataSplitter:
                 "not found in DataFrame"
             )
         df_targets = df[[date_column, target_column]].copy()
-        df_features = df.drop(columns=[target_column]).copy()
+        df_features = df.copy()
         logger.info(
             f"Split data into features (shape: {df_features.shape}) and "
             f"targets (shape: {df_targets.shape})"
