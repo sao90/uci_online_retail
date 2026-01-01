@@ -1,34 +1,96 @@
-$schema: https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json
+$schema: some-azure-schema-url
 type: pipeline
 display_name: retail_preprocessing_pipeline
 description: End-to-end preprocessing pipeline for UCI Online Retail dataset
 
 # Pipeline settings
 settings:
-  default_compute: azureml:cpu-cluster
-  default_datastore: azureml:workspaceblobstore
+  default_compute: insert_value_here
+  default_datastore: insert_value_here
   continue_on_step_failure: false
 
-# Pipeline inputs (can be overridden at runtime)
+# Pipeline inputs - by component
+### NB: all uri_file path point to local paths for expositional purposes.
+### With a real Azure ML setup, these should point to datastore paths for both local and cloud runs.
 inputs:
-  db_path:
+  # ==========================================
+  # INGEST_DATA COMPONENT PARAMETERS
+  # ==========================================
+  ingest_data__db_path:
     type: uri_file
-    path: azureml://datastores/workspaceblobstore/paths/retail/retail.db
-  countries:
+    default: "data/retail.db"
+  ingest_data__table_name:
+    type: string
+    default: "transactions"
+  ingest_data__output_data:
+    type: uri_file
+    default: "data/pipeline_runs/raw_data.parquet"
+
+  # ==========================================
+  # CLEAN_DATA COMPONENT PARAMETERS
+  # ==========================================
+  clean_data__countries:
     type: string
     default: "United Kingdom"
+  clean_data__output_data:
+    type: uri_file
+    default: "data/pipeline_runs/cleaned_data.parquet"
 
-# Pipeline outputs
-outputs:
-  train_data:
-    type: uri_folder
-    mode: rw_mount
-  val_data:
-    type: uri_folder
-    mode: rw_mount
-  test_data:
-    type: uri_folder
-    mode: rw_mount
+  # ==========================================
+  # SPLIT_DATA COMPONENT PARAMETERS
+  # ==========================================
+  split_data__target_column:
+    type: string
+    default: "Quantity"
+  split_data__date_column:
+    type: string
+    default: "InvoiceDate"
+  split_data__days_in_test_split:
+    type: integer
+    default: 30
+  split_data__output_train_targets:
+    type: uri_file
+    default: "data/pipeline_runs/train_targets.parquet"
+  split_data__output_test_targets:
+    type: uri_file
+    default: "data/pipeline_runs/test_targets.parquet"
+  split_data__output_features:
+    type: uri_file
+    default: "data/pipeline_runs/features_raw.parquet"
+
+  # ==========================================
+  # FEATURE_ENGINEERING COMPONENT PARAMETERS
+  # ==========================================
+  feature_engineering__target_column:
+    type: string
+    default: "Quantity"
+  feature_engineering__date_column:
+    type: string
+    default: "InvoiceDate"
+  feature_engineering__transaction_id_column:
+    type: string
+    default: "InvoiceNo"
+  feature_engineering__customer_id_column:
+    type: string
+    default: "CustomerID"
+  feature_engineering__article_id_column:
+    type: string
+    default: "StockCode"
+  feature_engineering__revenue_column:
+    type: string
+    default: "Revenue"
+  feature_engineering__output_train_targets:
+    type: uri_file
+    default: "data/pipeline_runs/train_targets_daily.parquet"
+  feature_engineering__output_test_targets:
+    type: uri_file
+    default: "data/pipeline_runs/test_targets_daily.parquet"
+  feature_engineering__output_past_covariates:
+    type: uri_file
+    default: "data/pipeline_runs/past_covariates.parquet"
+  feature_engineering__output_future_covariates:
+    type: uri_file
+    default: "data/pipeline_runs/future_covariates.parquet"
 
 # Pipeline steps
 jobs:
@@ -37,79 +99,61 @@ jobs:
     type: command
     component: ../components/preprocessing/ingest_data.py
     inputs:
-      db_path: ${{parent.inputs.db_path}}
-    outputs:
-      output_data:
-        type: uri_file
-        mode: rw_mount
-    environment: azureml:retail-env@latest
-    compute: azureml:cpu-cluster
+      db_path: ${{parent.inputs.ingest_data__db_path}}
+      table_name: ${{parent.inputs.ingest_data__table_name}}
+      output_data: ${{parent.inputs.ingest_data__output_data}}
+    environment: some-repository:UCI-retail-case@1.2.3 #
+      # Setup versioned image build in CI/CD, and version this yaml file with bumping
+      # A single common image for all components to reduce image maintenance.
+
 
   # Step 2: Clean data (remove cancelled transactions, negatives, etc.)
   clean_data:
     type: command
     component: ../components/preprocessing/clean_data.py
+    depends_on:
+      - ingest_data
     inputs:
-      input_data: ${{parent.jobs.ingest_data.outputs.output_data}}
-      countries: ${{parent.inputs.countries}}
-    outputs:
-      output_data:
-        type: uri_file
-        mode: rw_mount
-    environment: azureml:retail-env@latest
-    compute: azureml:cpu-cluster
+      input_data: ${{parent.inputs.ingest_data__output_data}}
+      countries: ${{parent.inputs.clean_data__countries}}
+      output_data: ${{parent.inputs.clean_data__output_data}}
+    environment: some-repository:UCI-retail-case@1.2.3
 
-  # Step 3: Split data chronologically (train/val/test)
+
+  # Step 3: Split data (train/test)
   split_data:
     type: command
     component: ../components/preprocessing/split_data.py
+    depends_on:
+      - clean_data
     inputs:
-      input_data: ${{parent.jobs.clean_data.outputs.output_data}}
-      train_ratio: 0.7
-      val_ratio: 0.15
-      test_ratio: 0.15
-    outputs:
-      output_train:
-        type: uri_file
-        mode: rw_mount
-      output_val:
-        type: uri_file
-        mode: rw_mount
-      output_test:
-        type: uri_file
-        mode: rw_mount
-    environment: azureml:retail-env@latest
-    compute: azureml:cpu-cluster
+      input_data: ${{parent.inputs.clean_data__output_data}}
+      target_column: ${{parent.inputs.split_data__target_column}}
+      date_column: ${{parent.inputs.split_data__date_column}}
+      days_in_test_split: ${{parent.inputs.split_data__days_in_test_split}}
+      output_train_targets: ${{parent.inputs.split_data__output_train_targets}}
+      output_test_targets: ${{parent.inputs.split_data__output_test_targets}}
+      output_features: ${{parent.inputs.split_data__output_features}}
+    environment: some-repository:UCI-retail-case@1.2.3
 
-  # Step 4a: Feature engineering - train set
-  feature_engineering_train:
+  # Step 4: Feature engineering
+  feature_engineering:
     type: command
     component: ../components/preprocessing/feature_engineering.py
+    depends_on:
+      - split_data
     inputs:
-      input_data: ${{parent.jobs.split_data.outputs.output_train}}
-    outputs:
-      output_data: ${{parent.outputs.train_data}}
-    environment: azureml:retail-env@latest
-    compute: azureml:cpu-cluster
-
-  # Step 4b: Feature engineering - validation set
-  feature_engineering_val:
-    type: command
-    component: ../components/preprocessing/feature_engineering.py
-    inputs:
-      input_data: ${{parent.jobs.split_data.outputs.output_val}}
-    outputs:
-      output_data: ${{parent.outputs.val_data}}
-    environment: azureml:retail-env@latest
-    compute: azureml:cpu-cluster
-
-  # Step 4c: Feature engineering - test set
-  feature_engineering_test:
-    type: command
-    component: ../components/preprocessing/feature_engineering.py
-    inputs:
-      input_data: ${{parent.jobs.split_data.outputs.output_test}}
-    outputs:
-      output_data: ${{parent.outputs.test_data}}
-    environment: azureml:retail-env@latest
-    compute: azureml:cpu-cluster
+      target_train_file: ${{parent.inputs.split_data__output_train_targets}}
+      target_test_file: ${{parent.inputs.split_data__output_test_targets}}
+      features_raw_file: ${{parent.inputs.split_data__output_features}}
+      target_column: ${{parent.inputs.feature_engineering__target_column}}
+      date_column: ${{parent.inputs.feature_engineering__date_column}}
+      transaction_id_column: ${{parent.inputs.feature_engineering__transaction_id_column}}
+      customer_id_column: ${{parent.inputs.feature_engineering__customer_id_column}}
+      article_id_column: ${{parent.inputs.feature_engineering__article_id_column}}
+      revenue_column: ${{parent.inputs.feature_engineering__revenue_column}}
+      output_train_targets: ${{parent.inputs.feature_engineering__output_train_targets}}
+      output_test_targets: ${{parent.inputs.feature_engineering__output_test_targets}}
+      output_past_covariates: ${{parent.inputs.feature_engineering__output_past_covariates}}
+      output_future_covariates: ${{parent.inputs.feature_engineering__output_future_covariates}}
+    environment: some-repository:UCI-retail-case@1.2.3
