@@ -1,15 +1,19 @@
-"""Initialize SQLite database with UCI Online Retail dataset."""
+"""
+Initialize SQLite database with UCI Online Retail dataset.
 
-# python-native imports
+This script adds the UCI online retail dataset to a local SQLite database.
+The local database serves as a mock for a system database that would exist in a real
+project.
+It contains a single table with all the data from the dataset, without any transformations.
+"""
+
 import os
 import sqlite3
 import logging
 
-# third-party imports
 import pandas as pd
 from dotenv import load_dotenv
 
-# project imports
 from src.log_config import setup_logging
 
 logger = logging.getLogger(__name__)
