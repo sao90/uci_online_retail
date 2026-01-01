@@ -10,6 +10,7 @@ import subprocess
 from dotenv import load_dotenv
 
 from src.log_config import setup_logging
+from src.utils import read_yaml
 
 logger = logging.getLogger(__name__)
 
@@ -19,22 +20,29 @@ PROJECT_ROOT = os.getenv("REPOSITORY_ROOT")
 sys.path.insert(0, PROJECT_ROOT)
 
 
-def run_preprocessing_pipeline():
+def run_preprocessing_pipeline(config_path: str) -> None:
     """
+    Run the preprocessing pipeline locally.
     Pipeline consists of 4 steps:
 
     1. Ingest data from SQLite to Parquet (local file)
     2. Clean data and save cleaned data to Parquet (local file)
     3. Split data into train/test and save to Parquet (local file)
     4. Generate features and save to Parquet (local file)
+
+    Args:
+        config_path: Path to the preprocessing pipeline YAML configuration file
     """
     setup_logging()
     logger.info("Starting local preprocessing pipeline run...")
 
+    config = read_yaml(config_path)
+    logger.info(f"Loaded pipeline config: {config}")
+
     # Step 1: Ingest data")
-    DB_PATH = os.getenv("DB_PATH")
-    DB_INPUT_TABLE_NAME = os.getenv("DB_INPUT_TABLE_NAME")
-    RAW_DATA_OUTPUT_PATH = os.getenv("RAW_DATA_OUTPUT_PATH")
+    DB_PATH = config["inputs"]["ingest_data__db_path"]["default"]
+    DB_INPUT_TABLE_NAME = config["inputs"]["ingest_data__table_name"]["default"]
+    RAW_DATA_OUTPUT_PATH = config["inputs"]["ingest_data__output_data"]["default"]
     subprocess.run(
         [
             sys.executable,
@@ -51,8 +59,8 @@ def run_preprocessing_pipeline():
     )
 
     # Step 2: Clean data
-    COUNTRIES = os.getenv("COUNTRIES")
-    CLEANED_DATA_OUTPUT_PATH = os.getenv("CLEANED_DATA_OUTPUT_PATH")
+    COUNTRIES = config["inputs"]["clean_data__countries"]["default"]
+    CLEANED_DATA_OUTPUT_PATH = config["inputs"]["clean_data__output_data"]["default"]
     subprocess.run(
         [
             sys.executable,
@@ -69,12 +77,18 @@ def run_preprocessing_pipeline():
     )
 
     # Step 3: Split data
-    TARGET_COLUMN = os.getenv("TARGET_COLUMN")
-    DATE_COLUMN = os.getenv("DATE_COLUMN")
-    DAYS_IN_TEST_SPLIT = os.getenv("DAYS_IN_TEST_SPLIT")
-    SPLIT_OUTPUT_TRAIN_TARGETS = os.getenv("SPLIT_OUTPUT_TRAIN_TARGETS")
-    SPLIT_OUTPUT_TEST_TARGETS = os.getenv("SPLIT_OUTPUT_TEST_TARGETS")
-    SPLIT_OUTPUT_FEATURES_RAW = os.getenv("SPLIT_OUTPUT_FEATURES_RAW")
+    TARGET_COLUMN = config["inputs"]["split_data__target_column"]["default"]
+    DATE_COLUMN = config["inputs"]["split_data__date_column"]["default"]
+    DAYS_IN_TEST_SPLIT = config["inputs"]["split_data__days_in_test_split"]["default"]
+    SPLIT_OUTPUT_TRAIN_TARGETS = config["inputs"]["split_data__output_train_targets"][
+        "default"
+    ]
+    SPLIT_OUTPUT_TEST_TARGETS = config["inputs"]["split_data__output_test_targets"][
+        "default"
+    ]
+    SPLIT_OUTPUT_FEATURES_RAW = config["inputs"]["split_data__output_features"][
+        "default"
+    ]
     subprocess.run(
         [
             sys.executable,
@@ -87,7 +101,7 @@ def run_preprocessing_pipeline():
             "--date_column",
             DATE_COLUMN,
             "--days_in_test_split",
-            DAYS_IN_TEST_SPLIT,
+            str(DAYS_IN_TEST_SPLIT),
             "--output_train_targets",
             SPLIT_OUTPUT_TRAIN_TARGETS,
             "--output_test_targets",
@@ -98,23 +112,29 @@ def run_preprocessing_pipeline():
         check=True,
     )
 
-    # Step 4: Generate features
-    CUSTOMER_ID_COLUMN = os.getenv("CUSTOMER_ID_COLUMN")
-    TRANSACTION_ID_COLUMN = os.getenv("TRANSACTION_ID_COLUMN")
-    ARTICLE_ID_COLUMN = os.getenv("ARTICLE_ID_COLUMN")
-    REVENUE_COLUMN = os.getenv("REVENUE_COLUMN")
-    FEATURE_ENGINEERING_OUTPUT_TRAIN_TARGETS = os.getenv(
-        "FEATURE_ENGINEERING_OUTPUT_TRAIN_TARGETS"
-    )
-    FEATURE_ENGINEERING_OUTPUT_TEST_TARGETS = os.getenv(
-        "FEATURE_ENGINEERING_OUTPUT_TEST_TARGETS"
-    )
-    FEATURE_ENGINEERING_OUTPUT_PAST_COVARIATES = os.getenv(
-        "FEATURE_ENGINEERING_OUTPUT_PAST_COVARIATES"
-    )
-    FEATURE_ENGINEERING_OUTPUT_FUTURE_COVARIATES = os.getenv(
-        "FEATURE_ENGINEERING_OUTPUT_FUTURE_COVARIATES"
-    )
+    # Step 4: Feature engineering
+    CUSTOMER_ID_COLUMN = config["inputs"]["feature_engineering__customer_id_column"][
+        "default"
+    ]
+    TRANSACTION_ID_COLUMN = config["inputs"][
+        "feature_engineering__transaction_id_column"
+    ]["default"]
+    ARTICLE_ID_COLUMN = config["inputs"]["feature_engineering__article_id_column"][
+        "default"
+    ]
+    REVENUE_COLUMN = config["inputs"]["feature_engineering__revenue_column"]["default"]
+    FEATURE_ENGINEERING_OUTPUT_TRAIN_TARGETS = config["inputs"][
+        "feature_engineering__output_train_targets"
+    ]["default"]
+    FEATURE_ENGINEERING_OUTPUT_TEST_TARGETS = config["inputs"][
+        "feature_engineering__output_test_targets"
+    ]["default"]
+    FEATURE_ENGINEERING_OUTPUT_PAST_COVARIATES = config["inputs"][
+        "feature_engineering__output_past_covariates"
+    ]["default"]
+    FEATURE_ENGINEERING_OUTPUT_FUTURE_COVARIATES = config["inputs"][
+        "feature_engineering__output_future_covariates"
+    ]["default"]
     subprocess.run(
         [
             sys.executable,
@@ -152,4 +172,4 @@ def run_preprocessing_pipeline():
 
 
 if __name__ == "__main__":
-    run_preprocessing_pipeline()
+    run_preprocessing_pipeline("pipelines/preprocessing_pipeline.yaml")

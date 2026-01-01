@@ -67,12 +67,12 @@ inputs:
   feature_engineering__date_column:
     type: string
     default: "InvoiceDate"
-  feature_engineering__transaction_id_column:
-    type: string
-    default: "InvoiceNo"
   feature_engineering__customer_id_column:
     type: string
     default: "CustomerID"
+  feature_engineering__transaction_id_column:
+    type: string
+    default: "InvoiceNo"
   feature_engineering__article_id_column:
     type: string
     default: "StockCode"
