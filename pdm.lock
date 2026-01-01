@@ -5,7 +5,7 @@
 groups = ["default", "dev", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:828afed7e34aeeba231087d5a3c3f1552408c00cb5b6d32bf842c21cbcd2e098"
+content_hash = "sha256:48815c6692601ca88cf9a00734f0942e7c1eb2a7b18daf3fdc4a85721f99fc22"
 
 [[metadata.targets]]
 requires_python = "==3.12.*"
@@ -454,6 +454,20 @@ files = [
     {file = "fonttools-4.61.1-cp312-cp312-win_amd64.whl", hash = "sha256:497c31ce314219888c0e2fce5ad9178ca83fe5230b01a5006726cdf3ac9f24d9"},
     {file = "fonttools-4.61.1-py3-none-any.whl", hash = "sha256:17d2bf5d541add43822bcf0c43d7d847b160c9bb01d15d5007d84e2217aaa371"},
     {file = "fonttools-4.61.1.tar.gz", hash = "sha256:6675329885c44657f826ef01d9e4fb33b9158e9d93c537d84ad8399539bc6f69"},
+]
+
+[[package]]
+name = "holidays"
+version = "0.87"
+requires_python = ">=3.10"
+summary = "Open World Holidays Framework"
+groups = ["default"]
+dependencies = [
+    "python-dateutil<3,>=2.9.0.post0",
+]
+files = [
+    {file = "holidays-0.87-py3-none-any.whl", hash = "sha256:c6ced9bd1b19b1a386365e0caf857220d5d7a29f02e7bdfc2f38f27d64b10265"},
+    {file = "holidays-0.87.tar.gz", hash = "sha256:e47d4e9c6b9c7afe331cc18f7fcf2026a38b4d701c9560a823d68a0306d8b3b3"},
 ]
 
 [[package]]
