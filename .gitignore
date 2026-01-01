@@ -216,3 +216,7 @@ data/retail.db
 
 # Pipeline output files
 data/pipeline_runs/*.parquet
+
+
+# exploratory notebooks
+notebooks/investigate_data.ipynb
