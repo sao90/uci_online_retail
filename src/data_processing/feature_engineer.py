@@ -147,7 +147,9 @@ class FeatureEngineer:
         """
         # Create full date range based on min/max
         min_date = df[self.date_col_name].min()
-        max_date = df[self.date_col_name].max()
+        max_date = df[self.date_col_name].max() + pd.Timedelta(
+            days=30
+        )  # add buffer for lags_future_covariates
         full_date_range = pd.date_range(start=min_date, end=max_date, freq="D")
 
         uk_holidays = holidays.UK(years=(2010, 2011))
