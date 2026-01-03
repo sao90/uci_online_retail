@@ -11,7 +11,6 @@ class DataCleaner:
     Stateless data cleaning for retail transaction data.
 
     Performs data quality operations:
-    - Remove cancelled transactions
     - Remove non-positive values in Quantity or UnitPrice
     - Remove non-product StockCodes (alphabetic prefixes)
     - Create Revenue column (Quantity * UnitPrice)
@@ -49,8 +48,7 @@ class DataCleaner:
         logger.info(f"Starting data cleaning pipeline. Input shape: {df.shape}")
         initial_rows = len(df)
 
-        df_cleaned = self.remove_cancelled_transactions(df)
-        df_cleaned = self.remove_non_positive_values(df_cleaned)
+        df_cleaned = self.remove_non_positive_values(df)
         df_cleaned = self.remove_articles_with_alphabetic_prefix(df_cleaned)
         df_cleaned = self.create_revenue_column(df_cleaned)
 
@@ -69,21 +67,6 @@ class DataCleaner:
         )
 
         return df_cleaned
-
-    def remove_cancelled_transactions(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Remove cancelled transactions (InvoiceNo starting with 'C' or 'c').
-
-        Args:
-            df: Input DataFrame.
-        Returns:
-            DataFrame with cancelled transactions removed.
-        """
-        initial_rows = len(df)
-        df_filtered = df[~df["InvoiceNo"].astype(str).str.startswith(("C", "c"))].copy()
-        removed = initial_rows - len(df_filtered)
-        logger.info(f"Removed {removed:,} cancelled transactions")
-        return df_filtered
 
     def remove_non_positive_values(self, df: pd.DataFrame) -> pd.DataFrame:
         """
