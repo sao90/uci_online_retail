@@ -1,3 +1,20 @@
+## v0.4.0 (2026-01-04)
+
+### Feat
+
+- **backtest_model.py**: add component for backtesting in training pipeline
+- **model_handler.py**: added module for model handling (training and backtest)
+
+### Fix
+
+- **investigate_data.ipynb**: backtest experimentation in notebook
+- **model_catalogue.py**: fix encoder dict
+
+### Refactor
+
+- **train_model.py**: refactor component to use new ModelHandler module
+- **all-python-files**: move individual folders into 'src' and add __main__.py
+
 ## v0.3.0 (2026-01-04)
 
 ### Feat
