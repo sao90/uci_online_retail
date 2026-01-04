@@ -7,8 +7,8 @@ import pickle
 import pandas as pd
 from darts import TimeSeries
 
-from src.model_handling.model_catalogue import MODEL_CATALOGUE
-from src.log_config import setup_logging
+from src.modules.model_handling.model_catalogue import MODEL_CATALOGUE
+from src.modules.log_config import setup_logging
 
 logger = logging.getLogger(__name__)
 

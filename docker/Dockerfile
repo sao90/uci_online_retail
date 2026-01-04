@@ -1,3 +1,6 @@
+# PLACEHOLDER DOCKERFILE.
+# Idea for structuring pipeline container for runtime.
+
 FROM python:3.12-slim
 
 # --- System Dependencies ---

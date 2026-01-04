@@ -4,178 +4,227 @@
 
 This project follows MLOps best practices with clear separation between reusable business logic and deployment artifacts. The structure is designed to support both local development and cloud deployment.
 
->>NB: All cloud services are mocked as local counterparts, such as the data layer being represented as a local SQLite database. No terraform ressources have been defined in this repository either.
+>>NB: All cloud services are mocked as local counterparts, such as the data layer being represented as a local SQLite database.
+
+
+### System's Architectural Layers
+
+The application follows a **layered architecture** with clear separation between stateless application logic and external systems:
+
+```
+    Stateless Application Layers               Statefull Dependencies
+
+┌───────────────────────────────────┐
+│  Layer 1: Entry Point             │
+│  Role: CLI routing & environment  │
+│  Dir: src/__main__.py             │
+└───────────────────────────────────┘
+              ↓
+┌───────────────────────────────────┐         ┌──────────────────────┐
+│  Layer 2: Orchestration           │────────→│  Configuration       │
+│  Role: Execute components in      │  reads  │  Dir: app_config/    │
+│        sequence, manage data flow,│         │  *.yaml files        │
+│        deployment (TODO)          │         │                      │
+│  Dir: src/pipelines/              │         └──────────────────────┘
+│       local_runner.py             │
+│       azure_deployment.py         │
+│       (placeholder)               │
+└───────────────────────────────────┘
+              ↓
+┌───────────────────────────────────┐         ┌──────────────────────┐
+│  Layer 3: Components              │────────→│  External Systems    │
+│  Role: Artifact I/O & CLI         │ read/   │  • Database (SQLite) │
+│  Dir: src/components/             │ write   │  • Files (parquet)   │
+└───────────────────────────────────┘         │  • Models (pickle)   │
+              ↓                               │  • Future: Cloud     │
+┌───────────────────────────────────┐         └──────────────────────┘
+│  Layer 4: Business & ML Logic     │
+│  Role: Isolating data/ML          │
+│        functionality              │
+│  Dir: src/modules/                │
+└───────────────────────────────────┘
+```
 
 ### Directory Layout
 
 ```
 uci_online_retail/
-├── src/                              # Reusable business logic
-│   └── data_processing/
-│       ├── data_loader.py           # SQL → DataFrame
-│       ├── data_cleaner.py          # Data cleaning transformations
-│       ├── data_splitter.py         # Time-based data splitting
-│       └── feature_engineer.py      # Feature engineering logic
+├── src/                              # All application Python code
+│   ├── __main__.py                  # Main entry point (python -m src)
+│   │
+│   ├── modules/                     # Reusable modules
+│   │   ├── data_processing/
+│   │   │   ├── data_loader.py       # SQL → DataFrame
+│   │   │   ├── data_cleaner.py      # Data cleaning transformations
+│   │   │   ├── data_splitter.py     # Time-based data splitting
+│   │   │   └── feature_engineer.py  # Feature engineering logic
+│   │   ├── model_handling/
+│   │   │   └── model_catalogue.py   # Model configurations
+│   │   ├── log_config.py            # Logging setup
+│   │   └── utils.py                 # Shared utilities
+│   │
+│   ├── components/                  # Pipeline components (thin wrappers)
+│   │   ├── preprocessing/
+│   │   │   ├── ingest_data.py       # CLI wrapper for DataLoader
+│   │   │   ├── clean_data.py        # CLI wrapper for DataCleaner
+│   │   │   ├── split_data.py        # CLI wrapper for DataSplitter
+│   │   │   └── feature_engineering.py  # CLI wrapper for FeatureEngineer
+│   │   ├── training/
+│   │   │   └── train_model.py       # Model training component
+│   │   └── evaluation/
+│   │
+│   ├── pipelines/                   # Pipeline orchestration
+│   │   ├── local_runner.py          # Local pipeline execution script
+│   │   └── Azule_deployment.py      # Orchestrating cloud deployment (placeholder)
+│   │
+│   └── setup_scripts/               # Database initialization & utilities
+│       └── initialize_sqlite_database.py
 │
-├── components/                       # Pipeline components (thin wrappers)
-│   ├── preprocessing/
-│   │   ├── ingest_data.py          # CLI wrapper for DataLoader
-│   │   ├── clean_data.py           # CLI wrapper for DataCleaner
-│   │   ├── split_data.py           # CLI wrapper for DataSplitter
-│   │   └── feature_engineering.py  # CLI wrapper for FeatureEngineer
-│   ├── training/
-│   └── evaluation/
-│
-├── pipelines/                        # Pipeline definitions & orchestration
-│   ├── local_runner.py              # Local pipeline execution script
-│   ├── preprocessing_pipeline.yaml  # Azure ML pipeline definition
-│   ├── training_pipeline.yaml
-│   └── evaluation_pipeline.yaml
+├── app_config/                       # Pipeline configuration files (Azure ML style)
+│   ├── dev/                         # Development environment configs
+│   │   ├── preprocessing_pipeline.yaml
+│   │   ├── training_pipeline.yaml
+│   │   └── evaluation_pipeline.yaml
+│   ├── test/                        # Test environment configs
+│   └── prod/                        # Production environment configs
 │
 ├── data/
 │   ├── retail.db                    # Local SQLite database
 │   └── pipeline_runs/               # Local pipeline artifacts (gitignored)
 │
-└── notebooks/                        # Exploratory analysis
+└── tests/                            # Test suite (placeholder)
+    ├── unit_tests/
+    └── integration/
 ```
 
-### Architectural Principles
 
-#### 1. Separation of Concerns
+**Key Principles:**
+- **Stateless core**: Layers 1-4 contain no state, only transformation logic
+- **External state**: Configuration and data live outside the application
+- **Unidirectional flow**: Each layer depends only on layers below it
+- **Reusability**: Business logic (Layer 4) works in any context (ideally, components (layer 3) should be reusable, but takes longer to design flawlessly)
 
-**Core Business Logic (`src/`):**
-- Stateless, reusable Python classes
-- Pure transformations: DataFrame → DataFrame
-- No CLI arguments, no file I/O
-- Easily unit testable
-- Used by both training layer and serving layer
+---
 
-**Pipeline Components (`components/`):**
-- Thin CLI wrappers around `src/` classes
-- Handle argument parsing (argparse)
-- Manage file I/O (read/write files)
-- Orchestration and logging
+## Layer 1: Entry Point
 
-**Pipeline Definitions (`pipelines/`):**
-- YAML files define Azure ML pipeline orchestration
-- Local runner script for development testing
-- No business logic - pure orchestration
+### Purpose & Responsibility
+- Single CLI interface for all pipelines
+- Route to local or cloud execution
+- Environment selection (dev/test/prod)
 
-#### 2. Component Design Pattern
+### Usage
 
-Each component follows this structure:
+```bash
+# Run single pipeline locally (dev environment by default)
+python -m src --pipelines preprocessing --run_locally True
 
+# Run multiple pipelines
+python -m src --pipelines preprocessing training --run_locally True
+
+# Specify environment
+python -m src --pipelines preprocessing --run_locally True --environment prod
+```
+
+**Arguments:**
+- `--pipelines`: One or more pipelines (choices: preprocessing, training, evaluation)
+- `--run_locally`: Run locally or deploy (choices: True, true, False, false; default: True)
+- `--environment`: Target environment (choices: dev, test, prod; default: dev)
+
+---
+
+## Layer 2: Pipeline Orchestration
+
+### Purpose & Responsibility
+- Read YAML configuration files
+- Execute components in sequence
+- Manage inter-component data flow and dependencies
+
+### Usage
+
+**Local execution** (`local_runner.py`):
+- Invoked automatically by Layer 1
+- Reads config from `app_config/{environment}/*.yaml`
+- Executes components as subprocesses
+- Simulates Azure ML's process isolation
+
+**Cloud deployment** (`azure_deployment.py`):
+- Placeholder for future Azure ML integration
+- Will submit YAML pipelines to cloud
+
+**Configuration** (YAML files):
+- Located in `app_config/{dev,test,prod}/`
+- Define component paths, inputs, outputs, dependencies
+
+---
+
+## Layer 3: Components
+
+### Purpose & Responsibility
+- Thin CLI wrappers around business logic modules
+- Handle file I/O (read/write parquet, pickle, database)
+- Parse command-line arguments
+- Manage logging and error handling
+
+### Usage
+
+**Via pipeline** (recommended):
+```bash
+python -m src --pipelines preprocessing --run_locally True
+```
+
+**Direct execution** (for testing individual components):
+```bash
+python -m src.components.preprocessing.ingest_data \
+    --db_path data/retail.db \
+    --table_name online_retail \
+    --output_data data/pipeline_runs/raw_data.parquet
+```
+
+**Component structure:**
 ```python
-# components/preprocessing/ingest_data.py
-
 def parse_args():
-    """Parse CLI arguments (Azure ML compliant)."""
-    # --input_data, --output_data, etc.
+    """Parse CLI arguments."""
+    # argparse setup
 
 def main():
-    """Entry point - handles I/O and orchestration."""
+    """Handle I/O and orchestration."""
     args = parse_args()
-
-    # Use shared business logic
-    loader = DataLoader(db_path=args.db_path)
-    df = loader.load_table(table_name=args.table_name)
-
-    # Handle file I/O (component responsibility)
-    df.to_parquet(args.output_data, index=False)
-
-if __name__ == "__main__":
-    main()
+    # Use business logic from Layer 4
+    # Handle file I/O
 ```
 
-**Benefits:**
-- Business logic is reusable across pipelines and inference
-- Components remain Azure ML compatible (simple Python scripts)
-- Easy to test components independently
-- Clear boundaries between computation and I/O
+---
 
-#### 3. Execution Models
+## Layer 4: Business Logic
 
-**Local Development:**
-```bash
-# Run full pipeline locally
-python -m pipelines.local_runner
+### Purpose & Responsibility
+- Pure transformation logic (DataFrame → DataFrame, model training, etc.)
+- Reusable across training, evaluation, inference services
+- No I/O operations, no CLI dependencies
+- Easily testable
 
-# Run single component for debugging
-python components/preprocessing/ingest_data.py \
-  --db_path data/retail.db \
-  --output_data data/pipeline_runs/raw_data.parquet
+### Usage
+
+```python
+# Import and use in any context
+from src.modules.data_processing.data_cleaner import DataCleaner
+from src.modules.model_handling.model_catalogue import MODEL_CATALOGUE
+
+# Use in component
+cleaner = DataCleaner()
+cleaned_df = cleaner.run(raw_df)
+
+# Use in inference service
+model_fn = MODEL_CATALOGUE["random_forest_1111"]
+model = model_fn()  # Get fresh instance
+predictions = model.predict(data)
 ```
 
-The local runner (`pipelines/local_runner.py`) simulates Azure ML by:
-- Executing components as separate subprocess calls
-- Passing file paths as CLI arguments
-- Using local filesystem as mock blob storage (`data/pipeline_runs/`)
+**Module organization:**
+- `src/modules/data_processing/` - Data transformation classes
+- `src/modules/model_handling/` - Model configurations and factories
+- `src/modules/utils.py` - Shared utilities
+- `src/modules/log_config.py` - Logging setup
 
-**Azure ML Deployment:**
-```bash
-# Submit pipeline to Azure ML
-az ml job create --file pipelines/preprocessing_pipeline.yaml
-```
-
-Azure ML:
-- Reads the YAML pipeline definition
-- Provisions compute resources
-- Executes each component as isolated process
-- Manages data passing via blob storage URIs
-
-#### 4. Data Flow
-
-**Preprocessing Pipeline:**
-```
-SQL Database
-    ↓
-[ingest_data] → raw_data.parquet
-    ↓
-[clean_data] → cleaned_data.parquet
-    ↓
-[split_data] → train.parquet, val.parquet, test.parquet
-    ↓
-[feature_engineering] → train_featured.parquet, val_featured.parquet, test_featured.parquet
-```
-
-Each step:
-1. Reads input from previous step (parquet file)
-2. Imports and instantiates class from `src/data_processing/`
-3. Calls transformation methods
-4. Writes output (parquet file) for next step
-
-#### 5. Reusability Across Contexts
-
-The same `src/` classes can be used across pipelines and services. For instance, a prediction class will be used both in training pipeline, evaluation pipeline, and a inference service. It's core logic should be isolated to the 1 class to avoid inconsistencies in respectively the training- and serving layer of the system.
-
-
-### Entry Points
-
-**For Local Development:**
-- `pipelines/local_runner.py` - Execute full pipeline locally for faster development iterations. Ensuring consistent arguments passed for local and cloud-based executions is not yet refined. It should be handled better than here.
-
-**For Azure ML:**
-- `pipelines/preprocessing_pipeline.yaml` - Submit to Azure ML for cloud execution
-
-**For Individual Components:**
-- `components/preprocessing/ingest_data.py` - Can be run standalone for debugging
-- Each component is a valid Python script with CLI interface
-
-### Configuration
-
-- `.env` - Environment variables (database paths, table names, local directories)
-- `pyproject.toml` - Python dependencies managed by PDM
-- `.vscode/settings.json` - IDE configuration (Python interpreter, analysis paths)
-- `pipelines/*.yaml` - Azure ML pipeline definitions (compute, environment, data flow)
-
-### Key Design Decisions
-
-1. **YAML-first for Azure ML** - Pipeline definitions are YAML files, not Python code. This follows Azure ML conventions and makes pipelines declarative and version-controllable.
-
-2. **Components are thin** - Minimal logic in components. All transformation logic lives in `src/` for reusability and testability. Components are lightweight interfaces that handles the IO operations required for the heavier lifting of the modules in `src/`
-
-3. **In-memory object interfaces** - Shared classes operate on already-instantiated Python objects (DataFrames, Darts TimeSeries, model objects), not I/O artifacts (file paths, database connections, URIs). Components handle I/O and pass instantiated objects to shared logic. This separation makes shared classes context-agnostic and easily testable.
-
-4. **Subprocess execution in local runner** - Simulates Azure ML's process isolation model, catching issues before cloud deployment.
-
-5. **No compilation step** - Unlike GCP Vertex AI / Kubeflow, Azure ML doesn't require compiling Python to YAML. Components are referenced directly in YAML definitions.
+---

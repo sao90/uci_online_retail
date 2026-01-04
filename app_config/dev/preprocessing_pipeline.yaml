@@ -97,7 +97,7 @@ jobs:
   # Step 1: Ingest data from SQLite database
   ingest_data:
     type: command
-    component: ../components/preprocessing/ingest_data.py
+    component: ../src/components/preprocessing/ingest_data.py
     inputs:
       db_path: ${{parent.inputs.ingest_data__db_path}}
       table_name: ${{parent.inputs.ingest_data__table_name}}
@@ -110,7 +110,7 @@ jobs:
   # Step 2: Clean data (remove cancelled transactions, negatives, etc.)
   clean_data:
     type: command
-    component: ../components/preprocessing/clean_data.py
+    component: ../src/components/preprocessing/clean_data.py
     depends_on:
       - ingest_data
     inputs:
@@ -123,7 +123,7 @@ jobs:
   # Step 3: Split data (train/test)
   split_data:
     type: command
-    component: ../components/preprocessing/split_data.py
+    component: ../src/components/preprocessing/split_data.py
     depends_on:
       - clean_data
     inputs:
@@ -139,7 +139,7 @@ jobs:
   # Step 4: Feature engineering
   feature_engineering:
     type: command
-    component: ../components/preprocessing/feature_engineering.py
+    component: ../src/components/preprocessing/feature_engineering.py
     depends_on:
       - split_data
     inputs:

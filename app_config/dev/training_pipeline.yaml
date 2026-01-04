@@ -55,7 +55,7 @@ jobs:
   # Step 1: Train model
   train_model:
     type: command
-    component: ../components/training/train_model.py
+    component: ../src/components/training/train_model.py
     inputs:
       model_config: ${{parent.inputs.train_model__model_config}}
       target_training_data_path: ${{parent.inputs.train_model__target_training_data_path}}

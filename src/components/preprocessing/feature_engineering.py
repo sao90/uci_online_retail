@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.data_processing.feature_engineer import FeatureEngineer
-from src.log_config import setup_logging
+from src.modules.data_processing.feature_engineer import FeatureEngineer
+from src.modules.log_config import setup_logging
 
 logger = logging.getLogger(__name__)
 

@@ -9,8 +9,8 @@ import subprocess
 
 from dotenv import load_dotenv
 
-from src.log_config import setup_logging
-from src.utils import read_yaml
+from src.modules.log_config import setup_logging
+from src.modules.utils import read_yaml
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ def run_preprocessing_pipeline(config_path: str) -> None:
         [
             sys.executable,
             "-m",
-            "components.preprocessing.ingest_data",
+            "src.components.preprocessing.ingest_data",
             "--db_path",
             DB_PATH,
             "--table_name",
@@ -65,7 +65,7 @@ def run_preprocessing_pipeline(config_path: str) -> None:
         [
             sys.executable,
             "-m",
-            "components.preprocessing.clean_data",
+            "src.components.preprocessing.clean_data",
             "--input_data",
             RAW_DATA_OUTPUT_PATH,
             "--countries",
@@ -93,7 +93,7 @@ def run_preprocessing_pipeline(config_path: str) -> None:
         [
             sys.executable,
             "-m",
-            "components.preprocessing.split_data",
+            "src.components.preprocessing.split_data",
             "--input_data",
             CLEANED_DATA_OUTPUT_PATH,
             "--target_column",
@@ -139,7 +139,7 @@ def run_preprocessing_pipeline(config_path: str) -> None:
         [
             sys.executable,
             "-m",
-            "components.preprocessing.feature_engineering",
+            "src.components.preprocessing.feature_engineering",
             "--target_train_file",
             SPLIT_OUTPUT_TRAIN_TARGETS,
             "--target_test_file",
@@ -207,7 +207,7 @@ def run_training_pipeline(config_path: str) -> None:
         [
             sys.executable,
             "-m",
-            "components.training.train_model",
+            "src.components.training.train_model",
             "--model_config",
             MODEL_CONFIG,
             "--target_training_data_path",
