@@ -3,8 +3,8 @@ import argparse
 import logging
 from pathlib import Path
 
-from src.data_processing.data_loader import DataLoader
-from src.log_config import setup_logging
+from src.modules.data_processing.data_loader import DataLoader
+from src.modules.log_config import setup_logging
 
 logger = logging.getLogger(__name__)
 

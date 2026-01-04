@@ -24,7 +24,7 @@ import logging
 import pandas as pd
 from dotenv import load_dotenv
 
-from src.log_config import setup_logging
+from src.modules.log_config import setup_logging
 
 logger = logging.getLogger(__name__)
 
