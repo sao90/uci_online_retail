@@ -39,7 +39,7 @@ def run_preprocessing_pipeline(config_path: str) -> None:
     config = read_yaml(config_path)
     logger.info(f"Loaded pipeline config: {config}")
 
-    # Step 1: Ingest data")
+    # Step 1: Ingest data
     DB_PATH = config["inputs"]["ingest_data__db_path"]["default"]
     DB_INPUT_TABLE_NAME = config["inputs"]["ingest_data__table_name"]["default"]
     RAW_DATA_OUTPUT_PATH = config["inputs"]["ingest_data__output_data"]["default"]
@@ -171,5 +171,70 @@ def run_preprocessing_pipeline(config_path: str) -> None:
     )
 
 
+def run_training_pipeline(config_path: str) -> None:
+    """
+    Run the training pipeline locally.
+    Pipeline consists of 1 step:
+    1. Train model and save trained model to file
+    Args:
+        config_path: Path to the training pipeline YAML configuration file
+    """
+    setup_logging()
+    logger.info("Starting local training pipeline run...")
+    config = read_yaml(config_path)
+    logger.info(f"Loaded pipeline config: {config}")
+    # Step 1: Train model
+    MODEL_CONFIG = config["inputs"]["train_model__model_config"]["default"]
+    TARGET_TRAINING_DATA_PATH = config["inputs"][
+        "train_model__target_training_data_path"
+    ]["default"]
+    PAST_COVARIATES_PATH = config["inputs"]["train_model__past_covariates_path"][
+        "default"
+    ]
+    FUTURE_COVARIATES_PATH = config["inputs"]["train_model__future_covariates_path"][
+        "default"
+    ]
+    FUTURE_COVARIATES_COLUMNS = config["inputs"][
+        "train_model__future_covariates_columns"
+    ]["default"]
+    PAST_COVARIATES_COLUMNS = config["inputs"]["train_model__past_covariates_columns"][
+        "default"
+    ]
+    TARGET_COLUMN_NAME = config["inputs"]["train_model__target_column_name"]["default"]
+    TIME_COLUMN_NAME = config["inputs"]["train_model__time_column_name"]["default"]
+    MODEL_OUTPUT = config["inputs"]["train_model__model_output"]["default"]
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "components.training.train_model",
+            "--model_config",
+            MODEL_CONFIG,
+            "--target_training_data_path",
+            TARGET_TRAINING_DATA_PATH,
+            "--past_covariates_path",
+            PAST_COVARIATES_PATH,
+            "--future_covariates_path",
+            FUTURE_COVARIATES_PATH,
+            "--future_covariates_columns",
+        ]
+        + FUTURE_COVARIATES_COLUMNS
+        + [
+            "--past_covariates_columns",
+        ]
+        + PAST_COVARIATES_COLUMNS
+        + [
+            "--target_column_name",
+            TARGET_COLUMN_NAME,
+            "--time_column_name",
+            TIME_COLUMN_NAME,
+            "--model_output",
+            MODEL_OUTPUT,
+        ],
+        check=True,
+    )
+
+
 if __name__ == "__main__":
     run_preprocessing_pipeline("pipelines/preprocessing_pipeline.yaml")
+    run_training_pipeline("pipelines/training_pipeline.yaml")
