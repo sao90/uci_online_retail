@@ -1,0 +1,71 @@
+$schema: some-azure-schema-url
+type: pipeline
+display_name: retail_preprocessing_pipeline
+description: End-to-end preprocessing pipeline for UCI Online Retail dataset
+
+# Pipeline settings
+settings:
+  default_compute: insert_value_here
+  default_datastore: insert_value_here
+  continue_on_step_failure: false
+
+# Pipeline inputs - by component
+### NB: all uri_file path point to local paths for expositional purposes.
+### With a real Azure ML setup, these should point to datastore paths for both local and cloud runs.
+inputs:
+  # ==========================================
+  # TRAIN_MODEL COMPONENT PARAMETERS
+  # ==========================================
+  train_model__model_config:
+    type: string
+    default: "random_forest_1111"
+  train_model__target_training_data_path:
+    type: uri_file
+    default: "data/pipeline_runs/train_targets_daily.parquet"
+  train_model__past_covariates_path:
+    type: uri_file
+    default: "data/pipeline_runs/past_covariates.parquet"
+  train_model__future_covariates_path:
+    type: uri_file
+    default: "data/pipeline_runs/future_covariates.parquet"
+  train_model__future_covariates_columns:
+    type: string
+    default:
+      - "is_holiday"
+  train_model__past_covariates_columns:
+    type: string
+    default:
+      - "num_transactions"
+      - "num_unique_customers"
+      - "num_unique_articles"
+      - "avg_basket_size"
+      - "avg_unit_price"
+  train_model__target_column_name:
+    type: string
+    default: "Quantity"
+  train_model__time_column_name:
+    type: string
+    default: "InvoiceDate"
+  train_model__model_output:
+    type: uri_file
+    default: "models/random_forest_1111.pkl"
+
+# Pipeline steps
+jobs:
+  # Step 1: Train model
+  train_model:
+    type: command
+    component: ../components/training/train_model.py
+    inputs:
+      model_config: ${{parent.inputs.train_model__model_config}}
+      target_training_data_path: ${{parent.inputs.train_model__target_training_data_path}}
+      past_covariates_path: ${{parent.inputs.train_model__past_covariates_path}}
+      future_covariates_path: ${{parent.inputs.train_model__future_covariates_path}}
+      future_covariates_columns: ${{parent.inputs.train_model__future_covariates_columns}}
+      past_covariates_columns: ${{parent.inputs.train_model__past_covariates_columns}}
+      target_column_name: ${{parent.inputs.train_model__target_column_name}}
+      time_column_name: ${{parent.inputs.train_model__time_column_name}}
+      model_output: ${{parent.inputs.train_model__model_output}}
+    environment: some-repository:UCI-retail-case@1.2.3 #
+      # Setup versioned image build in CI/CD, and version this yaml file with bumping
+      # A single common image for all components to reduce image maintenance.
