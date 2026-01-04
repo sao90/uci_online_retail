@@ -7,7 +7,7 @@ import pickle
 import pandas as pd
 from darts import TimeSeries
 
-from src.modules.model_handling.model_catalogue import MODEL_CATALOGUE
+from src.modules.model_handling.model_handler import ModelHandler
 from src.modules.log_config import setup_logging
 
 logger = logging.getLogger(__name__)
@@ -80,15 +80,8 @@ def main():
     setup_logging()
     args = parse_args()
     logger.info("Starting model training component...")
-    if args.model_config not in MODEL_CATALOGUE:
-        logger.error(
-            f"Model config '{args.model_config}' not found in MODEL CATALOGUE \n"
-            f"Available models: {list(MODEL_CATALOGUE.keys())}"
-        )
-        sys.exit(1)
-    model = MODEL_CATALOGUE[args.model_config]()  # call function here
+    model_key = args.model_config
     logger.info(f"Using model config: {args.model_config}")
-    logger.info(f"Model parameters: {model.model_params}")
     future_covariates_columns = args.future_covariates_columns
     past_covariates_columns = args.past_covariates_columns
     target_column = [args.target_column_name]
@@ -137,20 +130,19 @@ def main():
         sys.exit(1)
 
     # Train model
-    try:
-        model.fit(
-            series=target_train,
-            past_covariates=past_covariates,
-            future_covariates=future_covariates,
-        )
-    except Exception:
-        logger.error("Error during model training", exc_info=True)
-        sys.exit(1)
+    model_handler = ModelHandler()
+    trained_model = model_handler.train_model(
+        model_key=model_key,
+        target_series=target_train,
+        past_covariates=past_covariates,
+        future_covariates=future_covariates,
+    )
     # Save model
     try:
         model_output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(model_output_path, "wb") as f:
-            pickle.dump(model, f)
+            pickle.dump(trained_model, f)
+        logger.info(f"Model saved to {model_output_path}")
     except Exception:
         logger.error("Error saving the model", exc_info=True)
         sys.exit(1)
