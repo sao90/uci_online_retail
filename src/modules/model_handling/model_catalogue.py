@@ -29,21 +29,26 @@ from darts.dataprocessing.transformers import Scaler
 RANDOM_FOREST_DEFAULT_ESTIMATORS = 500
 RANDOM_FOREST_DEFAULT_MAX_DEPTH = 10
 ENCODERS = {
-    "cyclic_day": {"cyclic": ["day_of_week"]},
-    "cyclic_day_scaled": {"cyclic": ["day_of_week"], "transformer": Scaler()},
-    "cyclic_day_month": {"cyclic": ["day_of_week", "month"]},
+    "cyclic_day": {"cyclic": {"future": ["day_of_week"]}},
+    "cyclic_day_scaled": {
+        "cyclic": {"future": ["day_of_week"]},
+        "transformer": Scaler(),
+    },
+    "cyclic_day_month": {"cyclic": {"future": ["day_of_week", "month"]}},
     "cyclic_day_month_scaled": {
-        "cyclic": ["day_of_week", "month"],
+        "cyclic": {"future": ["day_of_week", "month"]},
         "transformer": Scaler(),
     },
-    "dt_attribute_day": {"datetime_attribute": ["day_of_week"]},
+    "dt_attribute_day": {"datetime_attribute": {"future": ["day_of_week"]}},
     "dt_attribute_day_scaled": {
-        "datetime_attribute": ["day_of_week"],
+        "datetime_attribute": {"future": ["day_of_week"]},
         "transformer": Scaler(),
     },
-    "dt_attribute_day_month": {"datetime_attribute": ["day_of_week", "month"]},
+    "dt_attribute_day_month": {
+        "datetime_attribute": {"future": ["day_of_week", "month"]}
+    },
     "dt_attribute_day_month_scaled": {
-        "datetime_attribute": ["day_of_week", "month"],
+        "datetime_attribute": {"future": ["day_of_week", "month"]},
         "transformer": Scaler(),
     },
 }

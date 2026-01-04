@@ -3,6 +3,7 @@ import argparse
 import logging
 from pathlib import Path
 import pickle
+import json
 
 import pandas as pd
 from darts import TimeSeries
@@ -15,12 +16,12 @@ logger = logging.getLogger(__name__)
 
 def parse_args():
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description="Model training component")
+    parser = argparse.ArgumentParser(description="Model backtest component")
     parser.add_argument(
-        "--model_config",
+        "--model_input",
         type=str,
         required=True,
-        help="Name of model in MODEL CATALOGUE",
+        help="Path to the trained model pickle file",
     )
     parser.add_argument(
         "--target_training_data_path",
@@ -67,21 +68,26 @@ def parse_args():
         help="Name of the time column",
     )
     parser.add_argument(
-        "--model_output",
+        "--backtest_start",
+        type=float,
+        default=0.7,
+        help="Fraction of series to start backtest (0.0-1.0)",
+    )
+    parser.add_argument(
+        "--scores_output",
         type=str,
         required=True,
-        help="Path to save the trained model",
+        help="Path to save the backtest scores JSON file",
     )
     return parser.parse_args()
 
 
 def main():
-    """Model training component entry point."""
+    """Model backtest component entry point."""
     setup_logging()
     args = parse_args()
-    logger.info("Starting model training component...")
-    model_key = args.model_config
-    logger.info(f"Using model config: {args.model_config}")
+    logger.info("Starting model backtest component...")
+
     future_covariates_columns = args.future_covariates_columns
     past_covariates_columns = args.past_covariates_columns
     target_column = [args.target_column_name]
@@ -89,7 +95,18 @@ def main():
     target_train_df_path = args.target_training_data_path
     past_covariates_df_path = args.past_covariates_path
     future_covariates_df_path = args.future_covariates_path
-    model_output_path = Path(args.model_output)
+    model_input_path = Path(args.model_input)
+    scores_output_path = Path(args.scores_output)
+    backtest_start = args.backtest_start
+
+    # Load trained model
+    try:
+        logger.info(f"Loading model from {model_input_path}")
+        with open(model_input_path, "rb") as f:
+            trained_model = pickle.load(f)
+    except Exception:
+        logger.error("Error loading the model", exc_info=True)
+        sys.exit(1)
 
     # Load data
     try:
@@ -99,6 +116,7 @@ def main():
     except Exception:
         logger.error("Error reading training data files", exc_info=True)
         sys.exit(1)
+
     # Convert to Darts TimeSeries
     try:
         target_train = TimeSeries.from_dataframe(
@@ -129,25 +147,31 @@ def main():
         logger.error("Error converting data to TimeSeries", exc_info=True)
         sys.exit(1)
 
-    # Train model
+    # Backtest model on training data
+    logger.info("Running backtest on training data...")
     model_handler = ModelHandler()
-    trained_model = model_handler.train_model(
-        model_key=model_key,
+    backtest_scores = model_handler.backtest_model(
+        model=trained_model,
         target_series=target_train,
         past_covariates=past_covariates,
         future_covariates=future_covariates,
+        start=backtest_start,
+        metrics=["rmse", "wmape"],
     )
-    # Save model
+
+    logger.info(f"Backtest scores: {backtest_scores}")
+
+    # Save backtest scores
     try:
-        model_output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(model_output_path, "wb") as f:
-            pickle.dump(trained_model, f)
-        logger.info(f"Model saved to {model_output_path}")
+        scores_output_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(scores_output_path, "w") as f:
+            json.dump(backtest_scores, f, indent=2)
+        logger.info(f"Backtest scores saved to {scores_output_path}")
     except Exception:
-        logger.error("Error saving the model", exc_info=True)
+        logger.error("Error saving backtest scores", exc_info=True)
         sys.exit(1)
 
-    logger.info("Model training component completed successfully.")
+    logger.info("Model backtest component completed successfully.")
 
 
 if __name__ == "__main__":
