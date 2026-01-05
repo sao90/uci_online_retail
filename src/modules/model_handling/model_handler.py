@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Union
 import logging
 
 import pandas as pd
@@ -29,8 +29,8 @@ class ModelHandler:
         self,
         model_key: str,
         target_series: TimeSeries,
-        past_covariates: Optional[TimeSeries] = None,
-        future_covariates: Optional[TimeSeries] = None,
+        past_covariates: TimeSeries,
+        future_covariates: TimeSeries,
     ) -> ForecastingModel:
         """
         Train a model specified by model_key using the provided time series data.
@@ -69,10 +69,10 @@ class ModelHandler:
         self,
         model: ForecastingModel,
         target_series: TimeSeries,
-        past_covariates: Optional[TimeSeries] = None,
-        future_covariates: Optional[TimeSeries] = None,
-        start: Union[float, int, pd.Timestamp] = 0.7,
-        metrics: List[str] = ["rmse", "wmape"],
+        past_covariates: TimeSeries,
+        future_covariates: TimeSeries,
+        start: Union[float, int, pd.Timestamp],
+        metrics: List[str],
     ) -> Dict[str, float]:
         """
         Backtest the provided model on the target series using specified metrics.
