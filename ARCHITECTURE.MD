@@ -45,6 +45,104 @@ The application follows a **layered architecture** with clear separation between
 └───────────────────────────────────┘
 ```
 
+**Key Principles:**
+- **Stateless core**: Layers 1-4 contain no state, only transformation logic
+- **External state**: Configuration and data live outside the application source code
+- **Unidirectional flow**: Each layer depends only on layers below it
+- **Reusability**: Business logic (Layer 4) works in any context (ideally, components (layer 3) should be reusable, but takes longer to design well)
+
+
+### Pipelines and their components
+Pipelines consist of one or more components that perform a specific task. Each component is a self-contained python script (see `src/components/<pipeline>/`), that can be configured with arguments in `app_config/*_pipeline.yaml`.
+
+The three pipelines in the MLOps project are: Preprocessing, Training and Evaluation.
+Each pipeline can be run independently or in sequence (TODO: only locally so far).
+
+The pipelines are structured as follows:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         PREPROCESSING PIPELINE                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│    Component 1:        Component 2:        Component 3:      Component 4:   │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────┐   │
+│  │ ingest_data  │───→│  clean_data  │───→│feature_      │───→│split_data│   │
+│  │              │    │              │    │ engineering  │    │          │   │
+│  │              │    │              │    │              │    │          │   │
+│  │ DB → parquet │    │ Transforming │    │ Create       │    │Time-based│   │
+│  │              │    │ & validation │    │ covariates   │    │train/test│   │
+│  └──────────────┘    └──────────────┘    └──────────────┘    └──────────┘   │
+│         ↓                   ↓                    ↓                  ↓       │
+│   raw_data.parquet   cleaned_data.parquet  features.parquet  train/test     │
+│                                                               splits.parquet│
+│                                                                             │
+│  Purpose: - Configure data needed for model training/evaluation             │
+│           - Produce the output                                              │
+│           - Isolated to be reused by inference pipeline/service daily.      │
+│  Output:  - Model-ready data files (2 covariate files, 2 target var files)  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           TRAINING PIPELINE                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│           Component 1:                        Component 2:                  │
+│        ┌──────────────────┐              ┌─────────────────────┐            │
+│        │  train_model     │─────────────→│  backtest_model     │            │
+│        │                  │  model.pkl   │                     │            │
+│        │ • Loads train    │              │ • Loads model.pkl   │            │
+│        │   data           │              │ • Loads train data  │            │
+│        │ • Trains model   │              │ • Backtests on      │            │
+│        │ • Saves model    │              │   training set      │            │
+│        │                  │              │   (start=0.7)       │            │
+│        └──────────────────┘              │ • Saves scores.json │            │
+│                 ↓                        └─────────────────────┘            │
+│                                                   ↓                         │
+│             model.pkl                         scores.json                   │
+│                                                                             │
+│  Purpose: - Train models and validate performance on training data          │
+│           - Iterate manually to find good model hyperparameters             │
+│  Output:  - 1 model.pkl + scores.json                                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         EVALUATION PIPELINE                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                         Component 1:                                        │
+│  ┌──────────────────────────────────────────────────────────────┐           │
+│  │                    backtest_model                            │           │
+│  │                                                              │           │
+│  │  • Loads multiple models (model1.pkl, model2.pkl, ...)       │           │
+│  │  • Loads train + test data                                   │           │
+│  │  • Concatenates: train + test                                │           │
+│  │  • Backtests each model on full data:                        │           │
+│  │    - backtest start=split_date (test boundary)               │           │
+│  │    - retrain=True simulates (assumed) production requirement │           │
+│  │  • Saves evaluation_results.json                             │           │
+│  │                                                              │           │
+│  └──────────────────────────────────────────────────────────────┘           │
+│                              ↓                                              │
+│                  evaluation_results.json                                    │
+│                  {                                                          │
+│                    "model1": {"rmse": 123, "wmape": 12.3},                  │
+│                    "model2": {"rmse": 456, "wmape": 45.6}                   │
+│                  }                                                          │
+│                                                                             │
+│  Purpose: - Compare multiple models on unseen test data.                    │
+│           - Find best performer among exisiting models for inference.       │
+│           - DO NOT(!) run with intend of improving model (bias/leakage).    │
+│           - Run periodically, or trigger with inference drift               │
+│  Output:  - Scores for multiple models → Select champion                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+```
+
+**Key Design Decisions**:
+- **Preprocessing pipeline:** seperated from training/evaluation. must be run independently before any of the others to prepare desired data (assume production, where datapoints expand daily)
+- **Training pipeline:** Backtest on training data (iterate manually to improve model here)
+- **Evaluation pipeline:** Backtest multiple champion candidates on train+test (start=test_boundary) to select champion for inference
+- **ML Artifacts** are passed between components are stored locally (would be MLFlow and cloud-based in production)
+- **Avoiding data leakage:** Covariates always provided as full dataset - Darts library handles internal slicing to avoid leakage
+
 ### Directory Layout
 
 ```
@@ -96,13 +194,6 @@ uci_online_retail/
     ├── unit_tests/
     └── integration/
 ```
-
-
-**Key Principles:**
-- **Stateless core**: Layers 1-4 contain no state, only transformation logic
-- **External state**: Configuration and data live outside the application
-- **Unidirectional flow**: Each layer depends only on layers below it
-- **Reusability**: Business logic (Layer 4) works in any context (ideally, components (layer 3) should be reusable, but takes longer to design flawlessly)
 
 ---
 
