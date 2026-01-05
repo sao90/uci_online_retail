@@ -1,3 +1,9 @@
+## v0.5.0 (2026-01-05)
+
+### Refactor
+
+- **model_handler.py**: avoid using default value. must be passed through config for explicity
+
 ## v0.4.0 (2026-01-04)
 
 ### Feat
