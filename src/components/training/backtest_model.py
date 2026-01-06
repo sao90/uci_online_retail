@@ -18,7 +18,7 @@ def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Model backtest component")
     parser.add_argument(
-        "--model_input",
+        "--model_path",
         type=str,
         required=True,
         help="Path to the trained model pickle file",
@@ -74,7 +74,7 @@ def parse_args():
         help="Fraction of series to start backtest (0.0-1.0)",
     )
     parser.add_argument(
-        "--scores_output",
+        "--scores_output_path",
         type=str,
         required=True,
         help="Path to save the backtest scores JSON file",
@@ -95,19 +95,19 @@ def main():
     target_train_df_path = args.target_training_data_path
     past_covariates_df_path = args.past_covariates_path
     future_covariates_df_path = args.future_covariates_path
-    model_input_path = Path(args.model_input)
-    scores_output_path = Path(args.scores_output)
+    model_path = Path(args.model_path)
+    scores_output_path = Path(args.scores_output_path)
     backtest_start = args.backtest_start
 
     # Load trained model
     try:
-        logger.info(f"Loading model from {model_input_path}")
-        with open(model_input_path, "rb") as f:
+        logger.info(f"Loading model from {model_path}")
+        with open(model_path, "rb") as f:
             trained_model = pickle.load(f)
     except Exception:
         logger.error("Error loading the model", exc_info=True)
         sys.exit(1)
-
+    logger.info(f"Loaded model: {model_path.stem}")
     # Load data
     try:
         target_train_df = pd.read_parquet(target_train_df_path)
@@ -159,7 +159,7 @@ def main():
         metrics=["rmse", "wmape"],
     )
 
-    logger.info(f"Backtest scores: {backtest_scores}")
+    logger.info(f"Backtest scores: {backtest_scores} for model {model_path.stem}")
 
     # Save backtest scores
     try:
@@ -170,6 +170,9 @@ def main():
     except Exception:
         logger.error("Error saving backtest scores", exc_info=True)
         sys.exit(1)
+    # TODO: add plot of backtest results for model performance visualization
+    # TODO: maybe add Shapley explanations values and plots
+    #
 
     logger.info("Model backtest component completed successfully.")
 

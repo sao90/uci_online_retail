@@ -1,3 +1,20 @@
+## v0.6.0 (2026-01-06)
+
+### Feat
+
+- **training_pipeline.yaml,-training_pipeline_local_runner.py**: implement backtest component in training pipeline
+- **model_performance_investigations.ipynb**: add simple example of shap explanation usage. more work required
+- **model_performance_investigation.ipynb**: notebook for local model investigations. (could be implemented in training pipeline)
+
+### Fix
+
+- **model_performance_investigation.ipynb**: run pre-commit hooks on notebook
+
+### Refactor
+
+- **components/training/backtest_model.py**: change argument names for consistency + add logging + ad TODO placeholders
+- **preprocessing_pipeline.yaml,-__main__.py,-preprocessing_pipeline_runner.py**: refactor preprocessing pipeline execution in local_runner + add comment explaining choice of input references in yaml
+
 ## v0.5.0 (2026-01-05)
 
 ### Refactor

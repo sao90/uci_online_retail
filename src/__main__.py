@@ -14,7 +14,8 @@ Usage:
 import argparse
 import sys
 
-from src.pipelines.local_runner import run_preprocessing_pipeline, run_training_pipeline
+from src.pipelines.preprocessing_pipeline_local_runner import run_preprocessing_pipeline
+from src.pipelines.training_pipeline_local_runner import run_training_pipeline
 
 
 def parse_args():
