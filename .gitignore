@@ -216,6 +216,7 @@ data/retail.db
 
 # Pipeline output files
 data/pipeline_runs/*.parquet
+data/pipeline_runs/*.json
 
 
 # exploratory notebooks
