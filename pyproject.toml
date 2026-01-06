@@ -1,6 +1,6 @@
 [project]
 name = "uci_online_retail"
-version = "0.5.0"
+version = "0.6.0"
 description = "UCI online retail case for Vertica"
 authors = [
     {name = "sao90", email = "s.ostervig@hotmail.com"},
