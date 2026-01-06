@@ -223,3 +223,7 @@ notebooks/investigate_data.ipynb
 
 # model artifacts
 models/*.pkl
+
+
+# case-specific files
+case_text.md
