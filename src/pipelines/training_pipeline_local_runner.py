@@ -33,7 +33,7 @@ def run_training_pipeline(config_path: str) -> None:
     logger.info("Starting local training pipeline run...")
     config = read_yaml(config_path)
     logger.info(f"Loaded pipeline config: {config}")
-    
+
     # Step 1: Train model
     MODEL_CONFIG = config["inputs"]["train_model__model_config"]["default"]
     TARGET_TRAINING_DATA_PATH = config["inputs"][
@@ -86,7 +86,7 @@ def run_training_pipeline(config_path: str) -> None:
     )
 
     # Step 2: Backtest model
-    
+
     subprocess.run(
         [
             sys.executable,
@@ -116,10 +116,10 @@ def run_training_pipeline(config_path: str) -> None:
             str(config["inputs"]["backtest_model__backtest_start"]["default"]),
             "--scores_output_path",
             config["inputs"]["backtest_model__scores_output_path"]["default"],
-            
         ],
         check=True,
     )
+
 
 if __name__ == "__main__":
     run_training_pipeline("pipelines/training_pipeline.yaml")

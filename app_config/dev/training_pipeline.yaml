@@ -10,8 +10,8 @@ settings:
   continue_on_step_failure: false
 
 # Pipeline inputs - by component
-### NB: all uri_file path point to local paths for expositional purposes.
-### With a real Azure ML setup, these should point to datastore paths for both local and cloud runs.
+### NB: These values are used directly by local_runner.
+### The ${{parent.inputs.xxx}} references in the jobs section are Azure ML specific.
 inputs:
   # ==========================================
   # TRAIN_MODEL COMPONENT PARAMETERS
@@ -49,6 +49,16 @@ inputs:
   train_model__model_output:
     type: uri_file
     default: "models/random_forest_1111.pkl"
+  # ==========================================
+  # BACKTEST_MODEL COMPONENT PARAMETERS
+  # ==========================================
+  backtest_model__backtest_start:
+    type: number,
+    default: 0.7  # Fraction of data to use for backtest start point
+  backtest_model__scores_output_path:
+    type: uri_file
+    default: "data/pipeline_runs/training_backtest_scores.json"
+
 
 # Pipeline steps
 jobs:
@@ -69,3 +79,18 @@ jobs:
     environment: some-repository:UCI-retail-case@1.2.3 #
       # Setup versioned image build in CI/CD, and version this yaml file with bumping
       # A single common image for all components to reduce image maintenance.
+
+  backtest_model:
+    type: command
+    component: ../src/components/training/backtest_model.py
+    inputs:
+      model_path: ${{jobs.train_model.outputs.model_output}}
+      target_training_data_path: ${{parent.inputs.train_model__target_training_data_path}}
+      past_covariates_path: ${{parent.inputs.train_model__past_covariates_path}}
+      future_covariates_path: ${{parent.inputs.train_model__future_covariates_path}}
+      future_covariates_columns: ${{parent.inputs.train_model__future_covariates_columns}}
+      past_covariates_columns: ${{parent.inputs.train_model__past_covariates_columns}}
+      target_column_name: ${{parent.inputs.train_model__target_column_name}}
+      time_column_name: ${{parent.inputs.train_model__time_column_name}}
+      backtest_start:
+    environment: some-repository:UCI-retail-case@1.2.3
