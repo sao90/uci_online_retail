@@ -10,8 +10,8 @@ settings:
   continue_on_step_failure: false
 
 # Pipeline inputs - by component
-### NB: all uri_file path point to local paths for expositional purposes.
-### With a real Azure ML setup, these should point to datastore paths for both local and cloud runs.
+### NB: These values are used directly by local_runner.
+### The ${{parent.inputs.xxx}} references in the jobs section are Azure ML specific.
 inputs:
   # ==========================================
   # INGEST_DATA COMPONENT PARAMETERS
