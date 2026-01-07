@@ -1,7 +1,7 @@
 $schema: some-azure-schema-url
 type: pipeline
-display_name: retail_preprocessing_pipeline
-description: End-to-end preprocessing pipeline for UCI Online Retail dataset
+display_name: retail_training_pipeline
+description: End-to-end training pipeline for UCI Online Retail dataset
 
 # Pipeline settings
 settings:
@@ -18,7 +18,7 @@ inputs:
   # ==========================================
   train_model__model_config:
     type: string
-    default: "random_forest_1111"
+    default: "random_forest_7777_cyclic_day_month_scaled"
   train_model__target_training_data_path:
     type: uri_file
     default: "data/pipeline_runs/train_targets_daily.parquet"
@@ -48,7 +48,7 @@ inputs:
     default: "InvoiceDate"
   train_model__model_output:
     type: uri_file
-    default: "models/random_forest_1111.pkl"
+    default: "models/random_forest_7777_cyclic_day_month_scaled.pkl"
   # ==========================================
   # BACKTEST_MODEL COMPONENT PARAMETERS
   # ==========================================
