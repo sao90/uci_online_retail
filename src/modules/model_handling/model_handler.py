@@ -45,14 +45,7 @@ class ModelHandler:
         Raises:
             ValueError: If the model_key is not found in the MODEL_CATALOGUE.
         """
-        if model_key not in MODEL_CATALOGUE:
-            logger.error(
-                f"Model key '{model_key}' not found in MODEL_CATALOGUE.", exc_info=True
-            )
-            raise ValueError
-
-        model_class = MODEL_CATALOGUE[model_key]
-        model = model_class()
+        model = self.initialize_model(model_key)
         try:
             model.fit(
                 series=target_series,
@@ -131,3 +124,25 @@ class ModelHandler:
             return {metrics[0]: backtest_scores}
         else:
             return {metrics[i]: score for i, score in enumerate(backtest_scores)}
+
+    def initialize_model(self, model_key: str) -> ForecastingModel:
+        """
+        Initialize a model specified by model_key without training.
+
+        Args:
+            model_key (str): Key to identify the model in the MODEL_CATALOGUE.
+        Returns:
+            ForecastingModel: The initialized forecasting model.
+        Raises:
+            ValueError: If the model_key is not found in the MODEL_CATALOGUE.
+        """
+        if model_key not in MODEL_CATALOGUE:
+            logger.error(
+                f"Model key '{model_key}' not found in MODEL_CATALOGUE.", exc_info=True
+            )
+            raise ValueError
+
+        model_class = MODEL_CATALOGUE[model_key]
+        model = model_class()
+        logger.info(f"Model '{model_key}' initialized successfully.")
+        return model

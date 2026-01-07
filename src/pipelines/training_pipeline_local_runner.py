@@ -1,5 +1,5 @@
 """
-Run pipelines locally for testing and development.
+Run training pipeline locally for testing and development.
 """
 
 import os

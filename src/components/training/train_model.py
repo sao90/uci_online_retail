@@ -100,30 +100,27 @@ def main():
         logger.error("Error reading training data files", exc_info=True)
         sys.exit(1)
     # Convert to Darts TimeSeries
+    time_series_kwargs = {
+        "time_col": time_column,
+        "fill_missing_dates": True,
+        "fillna_value": 0,
+        "freq": "D",
+    }
     try:
         target_train = TimeSeries.from_dataframe(
             target_train_df,
-            time_col=time_column,
             value_cols=target_column,
-            fill_missing_dates=True,
-            fillna_value=0,
-            freq="D",
+            **time_series_kwargs,
         )
         past_covariates = TimeSeries.from_dataframe(
             past_covariates_df,
-            time_col=time_column,
+            **time_series_kwargs,
             value_cols=past_covariates_columns,
-            fill_missing_dates=True,
-            fillna_value=0,
-            freq="D",
         )
         future_covariates = TimeSeries.from_dataframe(
             future_covariates_df,
-            time_col=time_column,
             value_cols=future_covariates_columns,
-            fill_missing_dates=True,
-            fillna_value=0,
-            freq="D",
+            **time_series_kwargs,
         )
     except Exception:
         logger.error("Error converting data to TimeSeries", exc_info=True)

@@ -16,6 +16,7 @@ import sys
 
 from src.pipelines.preprocessing_pipeline_local_runner import run_preprocessing_pipeline
 from src.pipelines.training_pipeline_local_runner import run_training_pipeline
+from src.pipelines.evaluation_pipeline_local_runner import run_evaluation_pipeline
 
 
 def parse_args():
@@ -67,8 +68,7 @@ def main():
             run_training_pipeline(config_path)
         if "evaluation" in args.pipelines:
             config_path = f"app_config/{args.environment}/evaluation_pipeline.yaml"
-            print("****Evaluation pipeline not yet implemented****")
-            sys.exit(1)
+            run_evaluation_pipeline(config_path)
 
         print("Pipeline(s) completed successfully!")
 
